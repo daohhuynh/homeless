@@ -1,0 +1,51 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://city.gd" id="1_city"]
+[ext_resource type="PackedScene" path="res://player.tscn" id="2_player"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.16, 0.18, 0.24, 1)
+sky_horizon_color = Color(0.38, 0.36, 0.36, 1)
+ground_bottom_color = Color(0.11, 0.11, 0.13, 1)
+ground_horizon_color = Color(0.38, 0.36, 0.36, 1)
+sun_angle_max = 40.0
+
+[sub_resource type="Sky" id="Sky_sky"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_env"]
+background_mode = 2
+sky = SubResource("Sky_sky")
+ambient_light_source = 3
+ambient_light_energy = 0.6
+tonemap_mode = 2
+fog_enabled = true
+fog_light_color = Color(0.32, 0.33, 0.36, 1)
+fog_density = 0.006
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.86, -0.35, 0.37, 0, 0.73, 0.68, -0.51, -0.59, 0.63, 0, 60, 0)
+light_energy = 1.1
+shadow_enabled = true
+directional_shadow_max_distance = 220.0
+
+[node name="City" type="Node3D" parent="."]
+script = ExtResource("1_city")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Controls" type="Label" parent="HUD"]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 400.0
+offset_bottom = 80.0
+text = "WASD move · Shift sprint · Space jump · R reshuffle city · Esc free mouse"
+modulate = Color(1, 1, 1, 0.55)
