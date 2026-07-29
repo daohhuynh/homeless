@@ -25,6 +25,38 @@ const FOV_LERP_SPEED := 8.0
 # --- Keys -------------------------------------------------------------------
 ## Physical keycodes, so bindings survive non-QWERTY layouts.
 const KEY_RESHUFFLE := KEY_R
+const KEY_HOST := KEY_H
+const KEY_JOIN := KEY_J
+
+# --- Networking -------------------------------------------------------------
+const MAX_PLAYERS := 4
+const NET_PORT := 27015
+const NET_DEFAULT_ADDRESS := "127.0.0.1"
+## How often the host broadcasts authoritative player state.
+const NET_SYNC_HZ := 30.0
+## How fast a remote player's visual position chases the last host state.
+const NET_INTERP_RATE := 16.0
+## How fast a client's locally-predicted position is pulled back toward the
+## host's version. Too high reads as rubber-banding, too low as drift.
+const NET_CORRECTION_RATE := 9.0
+## Past this error the client stops blending and just teleports.
+const NET_SNAP_DISTANCE := 4.0
+
+## Debug aid: put everyone on one intersection, ringed apart, so you can see
+## each other the moment you connect. Set false for scattered starts.
+const SPAWN_TOGETHER := true
+const SPAWN_SPREAD := 2.5
+
+const PLAYER_COLORS: Array[Color] = [
+	Color(0.90, 0.76, 0.30),
+	Color(0.40, 0.68, 0.90),
+	Color(0.85, 0.42, 0.42),
+	Color(0.50, 0.82, 0.55),
+]
+const NAME_TAG_FONT_SIZE := 64
+const NAME_TAG_PIXEL_SIZE := 0.006
+const NAME_TAG_HEIGHT := 1.35
+const NAME_TAG_RANGE := 90.0
 
 # --- City layout ------------------------------------------------------------
 const GRID_SIZE := 9              # blocks per side

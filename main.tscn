@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://city.gd" id="1_city"]
-[ext_resource type="PackedScene" path="res://player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://main.gd" id="1_main"]
+[ext_resource type="Script" path="res://city.gd" id="2_city"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.16, 0.18, 0.24, 1)
@@ -24,6 +24,7 @@ fog_light_color = Color(0.32, 0.33, 0.36, 1)
 fog_density = 0.006
 
 [node name="Main" type="Node3D"]
+script = ExtResource("1_main")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_env")
@@ -35,17 +36,24 @@ shadow_enabled = true
 directional_shadow_max_distance = 220.0
 
 [node name="City" type="Node3D" parent="."]
-script = ExtResource("1_city")
+script = ExtResource("2_city")
 
-[node name="Player" parent="." instance=ExtResource("2_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+[node name="Players" type="Node3D" parent="."]
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="Controls" type="Label" parent="HUD"]
 offset_left = 16.0
 offset_top = 12.0
-offset_right = 400.0
-offset_bottom = 80.0
-text = "WASD move · Shift sprint · Space jump · R reshuffle city · Esc free mouse"
+offset_right = 640.0
+offset_bottom = 36.0
+text = "WASD move · Shift sprint · Space jump · R reshuffle (host) · Esc free mouse"
 modulate = Color(1, 1, 1, 0.55)
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 16.0
+offset_top = 36.0
+offset_right = 640.0
+offset_bottom = 60.0
+text = "H host · J join 127.0.0.1"
+modulate = Color(1, 1, 1, 0.75)

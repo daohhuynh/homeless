@@ -1,12 +1,17 @@
 extends Node3D
 
-## Builds the city from Config.LOCATIONS every run. The grid layout is fixed;
-## which location lands on which block is shuffled per run, so nobody can
-## memorize the map across sessions.
+## Builds the city from Config.LOCATIONS. Everything random here is drawn from
+## _rng, which is seeded from the host's seed — so every machine in the session
+## generates a byte-identical city without any of it going over the wire.
+##
+## Array.shuffle() deliberately is not used: it draws from the global RNG,
+## which is not seeded, and would put different locations on different blocks
+## for every player.
 
-@export var player_path: NodePath = ^"../Player"
+var is_built := false
 
 var _rng := RandomNumberGenerator.new()
+var _spawn_points: Array[Vector3] = []
 
 ## Block pitch: one buildable cell plus the street on one side of it.
 func _pitch() -> float:
@@ -20,19 +25,41 @@ func _cell_center(x: int, z: int) -> Vector3:
 	var origin := -_span() * 0.5 + Config.STREET_WIDTH * 0.5 + Config.CELL_SIZE * 0.5
 	return Vector3(origin + x * _pitch(), 0.0, origin + z * _pitch())
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo \
-			and event.physical_keycode == Config.KEY_RESHUFFLE:
-		get_viewport().set_input_as_handled()
-		# Deferred: reloading mid-input would free this node while it is
-		# still dispatching.
-		get_tree().call_deferred(&"reload_current_scene")
-
-func _ready() -> void:
-	_rng.randomize()
+func build(city_seed: int) -> void:
+	# Detach before freeing: queue_free() is deferred, so the old city would
+	# still be in the tree while the new one is being added.
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
+	_rng.seed = city_seed
 	_build_ground()
 	_build_blocks()
-	_place_player()
+	_build_spawn_points()
+	is_built = true
+
+## Distinct street intersections, ordered deterministically so every machine
+## agrees on which player starts where.
+func spawn_point(index: int) -> Vector3:
+	if _spawn_points.is_empty():
+		return Vector3(0.0, Config.PLAYER_HEIGHT, 0.0)
+	if Config.SPAWN_TOGETHER:
+		# Ringed around one intersection: visible immediately, not overlapping.
+		var angle := TAU * float(index) / float(Config.MAX_PLAYERS)
+		return _spawn_points[0] + Vector3(cos(angle), 0.0, sin(angle)) * Config.SPAWN_SPREAD
+	return _spawn_points[index % _spawn_points.size()]
+
+func _build_spawn_points() -> void:
+	var candidates: Array[Vector3] = []
+	var offset := _pitch() * 0.5
+	# Intersections sit between cells, so index 1..GRID_SIZE-1.
+	for x in range(1, Config.GRID_SIZE):
+		for z in range(1, Config.GRID_SIZE):
+			var corner := _cell_center(x, z)
+			candidates.append(Vector3(
+				corner.x - offset, Config.PLAYER_HEIGHT, corner.z - offset
+			))
+	_shuffle(candidates)
+	_spawn_points = candidates
 
 func _build_ground() -> void:
 	var size := _span() + Config.GROUND_MARGIN
@@ -75,7 +102,7 @@ func _shuffled_rows(count: int) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	for row in Config.LOCATIONS:
 		rows.append(row)
-	rows.shuffle()
+	_shuffle(rows)
 	if rows.size() > count:
 		rows.resize(count)
 
@@ -86,8 +113,16 @@ func _shuffled_rows(count: int) -> Array[Dictionary]:
 			rows.append({"name": _filler_name(), "kind": "block"})
 
 	# Named locations were front-loaded above; shuffle again so they scatter.
-	rows.shuffle()
+	_shuffle(rows)
 	return rows
+
+## Seeded Fisher-Yates. See the note at the top about Array.shuffle().
+func _shuffle(arr: Array) -> void:
+	for i in range(arr.size() - 1, 0, -1):
+		var j := _rng.randi_range(0, i)
+		var tmp = arr[i]
+		arr[i] = arr[j]
+		arr[j] = tmp
 
 func _filler_name() -> String:
 	var prefix: String = Config.FILLER_PREFIX[_rng.randi() % Config.FILLER_PREFIX.size()]
@@ -95,9 +130,8 @@ func _filler_name() -> String:
 	return "%s %s" % [prefix, suffix]
 
 func _build_building(row: Dictionary, center: Vector3) -> void:
-	var inset := _rng.randf_range(Config.BUILDING_MIN_INSET, Config.BUILDING_MAX_INSET)
 	var footprint := Vector2(
-		Config.CELL_SIZE - inset,
+		Config.CELL_SIZE - _rng.randf_range(Config.BUILDING_MIN_INSET, Config.BUILDING_MAX_INSET),
 		Config.CELL_SIZE - _rng.randf_range(Config.BUILDING_MIN_INSET, Config.BUILDING_MAX_INSET)
 	)
 	var height := _rng.randf_range(Config.BUILDING_MIN_HEIGHT, Config.BUILDING_MAX_HEIGHT)
@@ -149,20 +183,3 @@ func _build_sign(row: Dictionary, height: float) -> Label3D:
 	label.visibility_range_end_margin = range_end * 0.2
 	label.position.y = height + Config.LABEL_HEIGHT_ABOVE_ROOF
 	return label
-
-## Drop the player on a random street intersection facing a random direction.
-## Same-spawn-every-run is the strongest "I've been here before" signal there
-## is, and it made a genuinely reshuffled city read as identical.
-func _place_player() -> void:
-	var player := get_node_or_null(player_path)
-	if not player is Node3D:
-		return
-	# Intersections sit between cells, so index 1..GRID_SIZE-1.
-	var gx := _rng.randi_range(1, Config.GRID_SIZE - 1)
-	var gz := _rng.randi_range(1, Config.GRID_SIZE - 1)
-	var corner := _cell_center(gx, gz)
-	var offset := _pitch() * 0.5
-	player.global_position = Vector3(
-		corner.x - offset, Config.PLAYER_HEIGHT, corner.z - offset
-	)
-	player.rotation.y = _rng.randf_range(-PI, PI)
