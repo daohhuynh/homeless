@@ -59,14 +59,40 @@ const NAME_TAG_HEIGHT := 1.35
 const NAME_TAG_RANGE := 90.0
 
 # --- City layout ------------------------------------------------------------
-const GRID_SIZE := 9              # blocks per side
-const CELL_SIZE := 18.0           # footprint a block may build inside
+## Blocks are rectangular and each column/row draws its own size, so the
+## street grid is rectilinear but not uniform.
+const GRID_SIZE := 8              # blocks per side
 const STREET_WIDTH := 10.0        # gap between blocks
+const BLOCK_MIN_WIDTH := 24.0     # block extent along X
+const BLOCK_MAX_WIDTH := 40.0
+const BLOCK_MIN_DEPTH := 14.0     # block extent along Z
+const BLOCK_MAX_DEPTH := 26.0
+
+# --- Lots -------------------------------------------------------------------
+## Each block is sliced along its width into lots. A lot may be empty, and a
+## building may span two adjacent lots.
+const LOTS_MIN := 2
+const LOTS_MAX := 6
+## Relative slice widths, normalized to fill the block. A wider spread makes
+## narrow infill next to broad frontages.
+const LOT_WEIGHT_MIN := 0.5
+const LOT_WEIGHT_MAX := 2.0
+const LOT_EMPTY_CHANCE := 0.15
+const LOT_MERGE_CHANCE := 0.20
+## Gap between a building and its lot line, drawn per side.
+const LOT_SIDE_GAP_MIN := 0.2
+const LOT_SIDE_GAP_MAX := 1.8
+## Distance from the street, drawn per building for each of the two frontages.
+const SETBACK_FRONT_MIN := 0.0
+const SETBACK_FRONT_MAX := 5.0
+const SETBACK_REAR_MIN := 0.0
+const SETBACK_REAR_MAX := 3.5
+## Below these a lot is left vacant rather than built with a sliver.
+const LOT_MIN_BUILD_WIDTH := 3.5
+const LOT_MIN_BUILD_DEPTH := 4.0
+
 const BUILDING_MIN_HEIGHT := 6.0
 const BUILDING_MAX_HEIGHT := 34.0
-const BUILDING_MIN_INSET := 1.0   # shrink footprint so blocks aren't uniform
-const BUILDING_MAX_INSET := 5.0
-const EMPTY_LOT_CHANCE := 0.12
 const GROUND_MARGIN := 60.0
 
 # --- Signage ----------------------------------------------------------------
