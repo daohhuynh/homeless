@@ -8,3 +8,4 @@
 # Playtest notes written by the F2 debug key. Per-machine scratch: each player's
 # log is their own client's view, so they do not merge into anything.
 /logs/
+.DS_Store
