@@ -102,28 +102,49 @@ func _build_block(cx: int, cz: int, landmark: Dictionary) -> void:
 	var width := _col_w[cx]
 	var depth := _row_d[cz]
 
-	var slots := _slice_into_lots(width)
-	if slots.is_empty():
-		return
+	# Two rows of buildings back to back, split unevenly. The first faces the
+	# street on the -Z side, the second the street on +Z, and neither may reach
+	# past the line they share — so the two rows cannot overlap by construction
+	# rather than by a check.
+	var split := _rng.randf_range(Config.ROW_SPLIT_MIN, Config.ROW_SPLIT_MAX)
+	var bands: Array[Vector2] = [
+		Vector2(block_z, depth * split),
+		Vector2(block_z + depth * split, depth * (1.0 - split)),
+	]
 
-	# The landmark takes the widest lot and is never left vacant. A named
-	# location that lost a coin flip or came out a sliver would vanish from the
-	# city entirely, and the game is about finding these places.
+	# Sliced per row, so the two rows do not share lot lines. A block reads as
+	# two streets' worth of frontage rather than as one building sawn in half.
+	var slots: Array[Array] = []
+	for b in bands.size():
+		slots.append(_slice_into_lots(width))
+
+	# The landmark takes the widest lot in the block, either row, and is never
+	# left vacant. A named location that lost a coin flip or came out a sliver
+	# would vanish from the city entirely, and the game is about finding these
+	# places.
+	var landmark_band := -1
 	var landmark_slot := -1
 	if not landmark.is_empty():
-		landmark_slot = 0
-		for i in slots.size():
-			if slots[i].y > slots[landmark_slot].y:
-				landmark_slot = i
+		var widest := -1.0
+		for b in bands.size():
+			var band_slots: Array[Vector2] = slots[b]
+			for i in band_slots.size():
+				if band_slots[i].y > widest:
+					widest = band_slots[i].y
+					landmark_band = b
+					landmark_slot = i
 
-	for i in slots.size():
-		var is_landmark := i == landmark_slot
-		var row: Dictionary = landmark if is_landmark \
-			else {"name": _filler_name(), "kind": "block"}
-		var vacant := _rng.randf() < Config.LOT_EMPTY_CHANCE
-		if vacant and not is_landmark:
-			continue
-		_build_on_lot(row, block_x + slots[i].x, slots[i].y, block_z, depth, is_landmark)
+	for b in bands.size():
+		var band_slots: Array[Vector2] = slots[b]
+		for i in band_slots.size():
+			var is_landmark: bool = b == landmark_band and i == landmark_slot
+			var row: Dictionary = landmark if is_landmark \
+				else {"name": _filler_name(), "kind": "block"}
+			var vacant := _rng.randf() < Config.LOT_EMPTY_CHANCE
+			if vacant and not is_landmark:
+				continue
+			_build_on_lot(row, block_x + band_slots[i].x, band_slots[i].y,
+				bands[b], b == 0, is_landmark)
 
 ## Slice the block width into lots of varying width, merging some adjacent
 ## pairs so a building can span two. Returns Vector2(offset, width) per slot.
@@ -155,16 +176,20 @@ func _slice_into_lots(width: float) -> Array[Vector2]:
 	return slots
 
 ## Place one building inside a lot: inset from the lot lines on each side, set
-## back independently from the two street frontages.
+## back from its own street, and held off the line its row shares with the other.
+## The band is Vector2(min Z, depth) of the row this lot belongs to.
 func _build_on_lot(row: Dictionary, lot_x: float, lot_width: float,
-		block_z: float, block_depth: float, required: bool = false) -> void:
+		band: Vector2, faces_negative_z: bool, required: bool = false) -> void:
+	var band_z := band.x
+	var band_depth := band.y
+
 	var gap_left := _rng.randf_range(Config.LOT_SIDE_GAP_MIN, Config.LOT_SIDE_GAP_MAX)
 	var gap_right := _rng.randf_range(Config.LOT_SIDE_GAP_MIN, Config.LOT_SIDE_GAP_MAX)
 	var build_width := lot_width - gap_left - gap_right
 
 	var front := _rng.randf_range(Config.SETBACK_FRONT_MIN, Config.SETBACK_FRONT_MAX)
 	var rear := _rng.randf_range(Config.SETBACK_REAR_MIN, Config.SETBACK_REAR_MAX)
-	var build_depth := block_depth - front - rear
+	var build_depth := band_depth - front - rear
 
 	# A sliver reads as a glitch; leave the lot vacant instead. A required
 	# building (a named location) instead gives up its gaps to fit.
@@ -176,16 +201,26 @@ func _build_on_lot(row: Dictionary, lot_x: float, lot_width: float,
 	if build_depth < Config.LOT_MIN_BUILD_DEPTH:
 		if not required:
 			return
-		build_depth = minf(Config.LOT_MIN_BUILD_DEPTH, block_depth)
-		front = (block_depth - build_depth) * 0.5
+		# A required building gives up its setbacks rather than its footprint, the
+		# way it gives up its side gaps above. A named location four metres deep
+		# across a thirty metre frontage reads as a wall, not a building — and it
+		# is the shape the models cannot absorb, since depth is where they are
+		# already being stretched.
+		build_depth = band_depth
+		front = 0.0
+		rear = 0.0
+
+	# Which setback sits at the low-Z edge of the band depends on which way the
+	# row faces: the front setback is always the one against the street.
+	var lead := front if faces_negative_z else rear
 
 	var height := _rng.randf_range(Config.BUILDING_MIN_HEIGHT, Config.BUILDING_MAX_HEIGHT)
 	var center := Vector3(
 		lot_x + gap_left + build_width * 0.5,
 		0.0,
-		block_z + front + build_depth * 0.5
+		band_z + lead + build_depth * 0.5
 	)
-	_build_building(row, center, Vector3(build_width, height, build_depth))
+	_build_building(row, center, Vector3(build_width, height, build_depth), faces_negative_z)
 
 # --- Spawns -----------------------------------------------------------------
 ## Distinct street intersections, ordered deterministically so every machine
@@ -265,7 +300,8 @@ func _build_ground() -> void:
 	shape.position.y = -0.5
 	body.add_child(shape)
 
-func _build_building(row: Dictionary, center: Vector3, size: Vector3) -> void:
+func _build_building(row: Dictionary, center: Vector3, size: Vector3,
+		faces_negative_z: bool) -> void:
 	var body := StaticBody3D.new()
 	body.name = str(row["name"]).validate_node_name()
 	body.position = center
@@ -276,9 +312,30 @@ func _build_building(row: Dictionary, center: Vector3, size: Vector3) -> void:
 	body.set_meta(&"footprint", Rect2(
 		center.x - size.x * 0.5, center.z - size.z * 0.5, size.x, size.z
 	))
-	body.set_meta(&"building_height", size.y)
 	add_child(body)
 
+	# A modelled kind keeps the lot's footprint but gets its own height, because
+	# a model stretched to an arbitrary height stops reading as a building.
+	var height := size.y
+	if Config.BUILDING_MODELS.has(row["kind"]):
+		height = _add_model(body, row, size, faces_negative_z)
+	else:
+		_add_box(body, row, size)
+	body.set_meta(&"building_height", height)
+
+	# Collision stays a box on the lot footprint whatever the mesh is. The kit's
+	# stoops and overhangs are centimetres at this scale, and the walkability
+	# invariant is written against the footprint.
+	var shape := CollisionShape3D.new()
+	var box_shape := BoxShape3D.new()
+	box_shape.size = Vector3(size.x, height, size.z)
+	shape.shape = box_shape
+	shape.position.y = height * 0.5
+	body.add_child(shape)
+
+	body.add_child(_build_sign(row, height))
+
+func _add_box(body: StaticBody3D, row: Dictionary, size: Vector3) -> void:
 	var mesh := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	box.size = size
@@ -290,14 +347,95 @@ func _build_building(row: Dictionary, center: Vector3, size: Vector3) -> void:
 	mesh.position.y = size.y * 0.5
 	body.add_child(mesh)
 
-	var shape := CollisionShape3D.new()
-	var box_shape := BoxShape3D.new()
-	box_shape.size = size
-	shape.shape = box_shape
-	shape.position.y = size.y * 0.5
-	body.add_child(shape)
+# --- Models -----------------------------------------------------------------
+## Fit a kit model to the lot and return the height it came out at.
+##
+## The kit's own colours come off its texture atlas, so KIND_COLORS does not
+## apply here: a modelled kind is no longer colour-coded, and its sign is the
+## only thing left saying what it is.
+func _add_model(body: StaticBody3D, row: Dictionary, size: Vector3,
+		faces_negative_z: bool) -> float:
+	var info := _pick_model(Config.BUILDING_MODELS[row["kind"]], size)
+	var box: AABB = info["aabb"]
 
-	body.add_child(_build_sign(row, size.y))
+	var scale_x := size.x / box.size.x
+	var scale_z := size.z / box.size.z
+	# Vertical scale is the mean of the two horizontal ones rather than a draw
+	# from the height range: that keeps storey heights and window proportions
+	# honest against the width. Clamped, so a tower-shaped model on a broad lot
+	# still lands inside the range the rest of the city is drawn from.
+	var height := clampf(box.size.y * (scale_x + scale_z) * 0.5,
+		Config.BUILDING_MIN_HEIGHT, Config.BUILDING_MAX_HEIGHT)
+
+	var node: Node3D = (info["scene"] as PackedScene).instantiate()
+	var yaw := deg_to_rad(Config.MODEL_YAW_DEGREES)
+	if not faces_negative_z:
+		yaw += PI
+	var basis := Basis.from_euler(Vector3(0.0, yaw, 0.0)) \
+		* Basis.IDENTITY.scaled(Vector3(scale_x, height / box.size.y, scale_z))
+	# Anchor the model's own base centre to the lot centre at ground level. The
+	# kit already models its origin there, but measuring rather than assuming is
+	# what makes the next kit a config row instead of a debugging session.
+	var anchor := Vector3(box.get_center().x, box.position.y, box.get_center().z)
+	node.transform = Transform3D(basis, -(basis * anchor))
+	body.add_child(node)
+	return height
+
+## Nearest footprint ratio wins, with the nearest few entered into a draw. The
+## comparison is in log space so a lot twice as wide as the model scores the
+## same as one half as wide.
+func _pick_model(paths: Array, size: Vector3) -> Dictionary:
+	var wanted := log(size.x / size.z)
+	var ranked: Array[Dictionary] = []
+	for path in paths:
+		var box: AABB = _model(path)["aabb"]
+		ranked.append({
+			"path": path,
+			"error": absf(log(box.size.x / box.size.z) - wanted),
+		})
+	# Path breaks ties: sort_custom is not stable, and two models with the same
+	# ratio must not resolve differently on two machines.
+	ranked.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if is_equal_approx(a["error"], b["error"]):
+			return a["path"] < b["path"]
+		return a["error"] < b["error"])
+	var span := mini(Config.MODEL_ASPECT_CANDIDATES, ranked.size())
+	return _model(ranked[_rng.randi_range(0, span - 1)]["path"])
+
+## Scene plus measured bounds, keyed by path. Static because a reshuffle would
+## otherwise instantiate every model again just to measure it again.
+static var _model_cache := {}
+
+func _model(path: String) -> Dictionary:
+	if _model_cache.has(path):
+		return _model_cache[path]
+	var scene: PackedScene = load(path)
+	var probe: Node3D = scene.instantiate()
+	var info := {"scene": scene, "aabb": _mesh_bounds(probe)}
+	probe.free()
+	_model_cache[path] = info
+	return info
+
+## Bounds of the visible mesh, not of the scene: an imported kit model can carry
+## empty nodes, and a node's own transform is part of where its mesh ends up.
+func _mesh_bounds(node: Node, xform := Transform3D.IDENTITY) -> AABB:
+	var boxes: Array[AABB] = []
+	_collect_bounds(node, xform, boxes)
+	if boxes.is_empty():
+		return AABB()
+	var merged := boxes[0]
+	for i in range(1, boxes.size()):
+		merged = merged.merge(boxes[i])
+	return merged
+
+func _collect_bounds(node: Node, xform: Transform3D, out: Array[AABB]) -> void:
+	var here := xform
+	if node is Node3D:
+		here = xform * (node as Node3D).transform
+	if node is MeshInstance3D:
+		out.append(here * (node as MeshInstance3D).get_aabb())
+	for child in node.get_children():
+		_collect_bounds(child, here, out)
 
 func _build_sign(row: Dictionary, height: float) -> Label3D:
 	var is_landmark: bool = row["kind"] != "block"

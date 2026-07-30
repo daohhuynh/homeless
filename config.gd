@@ -99,11 +99,29 @@ const NAME_TAG_RANGE := 90.0
 ## Blocks are rectangular and each column/row draws its own size, so the
 ## street grid is rectilinear but not uniform.
 const GRID_SIZE := 8              # blocks per side
-const STREET_WIDTH := 10.0        # gap between blocks
+## The Kenney city kits ship no scale statement, so this is measured off the two
+## props in them with fixed real-world sizes: a traffic cone 0.094 units tall
+## (~0.75m) and a construction barrier 0.119 x 0.225 (~1.05 x 2.0m). All three
+## readings land on 8-9m per kit unit. Cross-checks: one road tile is 1 unit,
+## which is a two-lane street, and building-a is 3 storeys in 1.293 units, which
+## is 3.9m a storey.
+const KIT_METRES_PER_UNIT := 9.0
+## Exactly one road tile, so tiles drop in without a stretch.
+const STREET_WIDTH := KIT_METRES_PER_UNIT   # gap between blocks
 const BLOCK_MIN_WIDTH := 24.0     # block extent along X
 const BLOCK_MAX_WIDTH := 40.0
-const BLOCK_MIN_DEPTH := 14.0     # block extent along Z
-const BLOCK_MAX_DEPTH := 26.0
+## Deep enough to hold two rows back to back: one kit building is about one unit
+## deep, so a row wants that plus its two setbacks, and a block wants two rows.
+## Halving the old 14-26 between two rows left every building squatter than the
+## kit was drawn at, which is the same distortion as stretching, pointed inward.
+const BLOCK_MIN_DEPTH := 22.0     # block extent along Z
+const BLOCK_MAX_DEPTH := 32.0
+## A block is two rows of buildings back to back, each facing its own street,
+## which is both how a real block works and what the kit's models are drawn for:
+## they detail their two Z faces and leave the X faces blank for a neighbour to
+## hide. The split is drawn per block so the two rows are rarely equal.
+const ROW_SPLIT_MIN := 0.4
+const ROW_SPLIT_MAX := 0.6
 
 # --- Lots -------------------------------------------------------------------
 ## Each block is sliced along its width into lots. A lot may be empty, and a
@@ -119,9 +137,12 @@ const LOT_MERGE_CHANCE := 0.20
 ## Gap between a building and its lot line, drawn per side.
 const LOT_SIDE_GAP_MIN := 0.2
 const LOT_SIDE_GAP_MAX := 1.8
-## Distance from the street, drawn per building for each of the two frontages.
+## Distance from the street the building faces, drawn per building.
 const SETBACK_FRONT_MIN := 0.0
 const SETBACK_FRONT_MAX := 5.0
+## Distance from the line the two rows share. Zero is a party wall, more is the
+## service alley the block's interior turns into — which is where a player sleeps
+## when the fronts are all lit.
 const SETBACK_REAR_MIN := 0.0
 const SETBACK_REAR_MAX := 3.5
 ## Below these a lot is left vacant rather than built with a sliver.
@@ -131,6 +152,42 @@ const LOT_MIN_BUILD_DEPTH := 4.0
 const BUILDING_MIN_HEIGHT := 6.0
 const BUILDING_MAX_HEIGHT := 34.0
 const GROUND_MARGIN := 60.0
+
+# --- Building models --------------------------------------------------------
+## Kinds listed here are built from a Kenney model instead of a box. A kind that
+## is absent stays a box, so the kit arrives one location type at a time.
+##
+## Model rows, like location rows: a new modelled type is a new entry.
+const BUILDING_MODELS: Dictionary = {
+	"store": [
+		"res://assets/kenney/city-kit-commercial/building-a.glb",
+		"res://assets/kenney/city-kit-commercial/building-b.glb",
+		"res://assets/kenney/city-kit-commercial/building-c.glb",
+		"res://assets/kenney/city-kit-commercial/building-d.glb",
+		"res://assets/kenney/city-kit-commercial/building-e.glb",
+		"res://assets/kenney/city-kit-commercial/building-f.glb",
+		"res://assets/kenney/city-kit-commercial/building-g.glb",
+		"res://assets/kenney/city-kit-commercial/building-h.glb",
+		"res://assets/kenney/city-kit-commercial/building-i.glb",
+		"res://assets/kenney/city-kit-commercial/building-j.glb",
+		"res://assets/kenney/city-kit-commercial/building-k.glb",
+		"res://assets/kenney/city-kit-commercial/building-l.glb",
+		"res://assets/kenney/city-kit-commercial/building-m.glb",
+		"res://assets/kenney/city-kit-commercial/building-n.glb",
+	],
+}
+
+## The city kits draw their detail on the two Z faces and leave the X faces
+## blank, meant to be hidden by a neighbour. Lots slice a block along X and the
+## streets run along Z, so the kit's front already faces the street and the
+## correction is zero. A kit whose front faces +Z instead needs 180 here.
+const MODEL_YAW_DEGREES := 0.0
+
+## Model footprints are fixed and lot widths are not, so fitting one to a lot
+## means stretching it. Picking the model whose width-to-depth ratio is nearest
+## the lot's keeps the stretch small; drawing from the nearest few keeps two
+## similarly-shaped lots from always getting the same building.
+const MODEL_ASPECT_CANDIDATES := 3
 
 # --- Signage ----------------------------------------------------------------
 const LABEL_FONT_SIZE := 128

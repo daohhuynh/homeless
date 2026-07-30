@@ -53,5 +53,13 @@ jobs:
       - name: Import project
         run: godot --headless --path . --import || true
 
+      # The exit code alone is not the signal. `godot --script` exits 0 when the
+      # script itself fails to load, so a parse error anywhere in the preload
+      # chain reports a clean green build having run nothing at all. The PASS
+      # line is the only thing that proves the suite got as far as reporting.
       - name: Run invariant suite
-        run: godot --headless --path . --script tests/invariants.gd
+        run: |
+          set -o pipefail
+          godot --headless --path . --script tests/invariants.gd 2>&1 \
+            | tee /tmp/invariants.log
+          grep -q '^PASS' /tmp/invariants.log

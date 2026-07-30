@@ -1,2 +1,12 @@
 # Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
+
+# Asset binaries, marked explicitly rather than left to text=auto detection.
+# There are ~1400 of them and a false positive would silently rewrite bytes
+# inside a mesh or a texture.
+*.glb binary
+*.png binary
+
+# Kit licenses are provenance records, so they stay byte-identical to what the
+# author shipped — CRLF included. Normalizing them would edit the evidence.
+assets/**/License.txt -text
