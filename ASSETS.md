@@ -2,9 +2,10 @@
 
 Every asset in this project, with its license. Nothing ships without a row here.
 
-All rows below are CC0-1.0 (public domain dedication) — no attribution is
-legally required, so there is no `## Attribution` section yet. Add one the
-moment a CC-BY asset lands.
+Every asset here is either CC0-1.0 or permissively licensed with **no attribution
+requirement**, so there is still no `## Attribution` section. Add one the moment
+a CC-BY asset lands — poly.pizza and Freesound both serve CC-BY routinely, so
+this will not stay true for long.
 
 GLB only. The FBX, OBJ, DAE, STL, Unity-package, and isometric-PNG folders in
 the source archives were not extracted. `License.txt` is kept inside each kit
@@ -93,6 +94,60 @@ watch for colour bleed before reaching for a mipmap setting.
 `Models/Textures/variation-a.png` and `-b.png`: the same UV layout in different
 colours, so dropping one in over `colormap.png` recolours a whole kit at once.
 Worth remembering when the city needs districts that read differently.
+
+## Soundfonts
+
+| File | Source | License | Author | Fetched | Version |
+|---|---|---|---|---|---|
+| `assets/soundfonts/GeneralUser-GS.sf2` | https://github.com/mrbumpy409/GeneralUser-GS | GeneralUser GS License v2.0 | S. Christian Collins | 2026-07-30 | 2.0.3 |
+
+32 MB, SF2 (`RIFF`/`sfbk`, SoundFont spec 2.1). SHA-256
+`9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe`. Verified by
+rendering a MIDI chord through it with `fluidsynth` and confirming the output was
+audible, not just non-empty (0.169 peak, 0.019 RMS) — an sf2 that loads and
+renders silence is the failure this catches.
+
+`assets/soundfonts/LICENSE.txt` is the upstream licence text, kept in-tree as the
+provenance record, byte-identical to what the author shipped (CRLF included) for
+the same reason the Kenney `License.txt` files are.
+
+**Anything rendered through this soundfont inherits this licence.** A rendered
+sound is a derivative of the samples inside the sf2, not an original work, so it
+is *not* `n/a (generated)` — it is GeneralUser GS License v2.0, and its
+`## Generated audio` row must name the sf2 in the Command column.
+
+The grant is unusually plain: use "without restriction for your own music
+creation, private or commercial", modification allowed, no attribution required.
+
+**The author discloses a sample-provenance caveat, quoted here so it is not lost
+in a licence file nobody reopens:**
+
+> Many of the samples are original, but some were taken from other banks freely
+> (and legally) available on the Internet from various SoundFont websites.
+> Because GeneralUser GS originated as a personal project with no intention for
+> publication, I cannot be 100% sure where all of the samples originated,
+> although I do know that none of them came from commercially published
+> SoundFont packages or sample CDs.
+
+That is a disclosed residual risk, not an unclear licence — the grant itself is
+unambiguous, which is why this passes the "no unconfirmable licences" rule. It
+has stood unchallenged since 2000. Worth a second look before shipping
+commercially; not worth blocking prototype audio on.
+
+The author also asks that his own download links not be hotlinked. We hold a
+local copy, which is what he asks for instead.
+
+**Why not FluidR3_GM.** MIT, cleaner provenance, and the usual first choice —
+but ~148 MB unpacked (135 MB as Debian's `fluid-soundfont` source package)
+against 32 MB here. This repo commits binaries directly and uses no Git LFS, so
+FluidR3 would more than quintuple it. Revisit if LFS ever lands, or if the
+provenance caveat above ever becomes a shipping blocker.
+
+**Two soundfonts already on the machine must not render anything that ships** —
+`fluid-synth`'s bundled `VintageDreamsWaves-v2.sf2`, and macOS's
+`gs_instruments.dls`, which is Apple system software licensed for use on the
+machine and not for redistribution inside a game. Both are fine for capability
+checks only.
 
 ## What each kit covers
 

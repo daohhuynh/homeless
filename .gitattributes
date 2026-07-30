@@ -6,7 +6,11 @@
 # inside a mesh or a texture.
 *.glb binary
 *.png binary
+*.sf2 binary
 
-# Kit licenses are provenance records, so they stay byte-identical to what the
+# Licenses are provenance records, so they stay byte-identical to what the
 # author shipped — CRLF included. Normalizing them would edit the evidence.
+# Two spellings because upstreams disagree: Kenney ships License.txt, the
+# GeneralUser GS soundfont ships LICENSE.txt, and pathspecs are case-sensitive.
 assets/**/License.txt -text
+assets/**/LICENSE.txt -text
