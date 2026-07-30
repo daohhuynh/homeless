@@ -24,7 +24,7 @@ var _col_w: Array[float] = []
 var _row_z: Array[float] = []   # min Z edge of each row
 var _row_d: Array[float] = []
 
-func build(city_seed: int) -> void:
+func build(city_seed: int) -> void  # deliberate CI red test
 	# Detach before freeing: queue_free() is deferred, so the old city would
 	# still be in the tree while the new one is being added.
 	for child in get_children():
