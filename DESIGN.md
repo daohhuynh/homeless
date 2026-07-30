@@ -14,6 +14,13 @@ test them against.
 - **Starting conditions are unfair on purpose.** The group is the balancing
   mechanism, not the dealer.
 
+## Decided
+
+Things settled, one line each, with the reason. The reason is the point: it is
+what stops a decision being silently re-proposed, and what lets it be reopened
+honestly when the reason stops holding. Empty until something is actually
+decided — this section accrues, it is not filled in up front.
+
 ## Gates
 
 Nothing advances past a gate until it passes. Gates close no design branch.

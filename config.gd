@@ -46,7 +46,13 @@ const DEBUG_TELEPORT_CLEARANCE := 0.25
 
 ## Session notes (F2). One file per calendar day, appended to, never rotated:
 ## a day's playtesting is one story and splitting it per launch loses the order.
-const NOTE_LOG_DIR := "res://logs"
+##
+## user://, not res://: res:// is read-only in an exported build, so notes
+## written there work in the editor and fail silently in the build you hand to
+## the four people whose playtest you wanted notes from. On macOS this resolves
+## under ~/Library/Application Support/Godot/app_userdata/homeless/. The debug
+## HUD prints the globalized path on write, so finding it is not guesswork.
+const NOTE_LOG_DIR := "user://logs"
 ## Empty notes are discarded rather than logged — a state dump with nothing said
 ## about it is noise, and F2-then-Escape has to mean something.
 const NOTE_MAX_LENGTH := 240

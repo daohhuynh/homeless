@@ -5,8 +5,8 @@ extends Node
 ##   T   teleport to a random street corner
 ##   F   toggle a free-fly camera that leaves your body behind
 ##   F3  toggle the seed readout
-##   F2  type a note; it is appended to logs/session-<date>.log with the full
-##       local game state at the moment you pressed the key
+##   F2  type a note; it is appended to Config.NOTE_LOG_DIR/session-<date>.log
+##       with the full local game state at the moment you pressed the key
 ##
 ## Nothing here is a game mechanic and nothing here is authoritative. The one
 ## exception is the teleport, which has to tell the host where it went — the
@@ -220,7 +220,10 @@ func _freeze_player(frozen: bool) -> void:
 	player.set_process_unhandled_input(not frozen)
 
 # --- Writing the log --------------------------------------------------------
-## Returns the path written, or "" if it could not be opened.
+## Returns the globalized path written, or "" if it could not be opened. The
+## globalized form is what gets shown and printed: notes live under user:// now,
+## which is somewhere in the OS's app-data tree rather than next to the project,
+## so "user://logs/..." on screen tells a playtester nothing they can act on.
 func _write_entry(note: String) -> String:
 	var dir := ProjectSettings.globalize_path(Config.NOTE_LOG_DIR)
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -245,7 +248,7 @@ func _write_entry(note: String) -> String:
 	# Also to stdout, so a note is still recoverable from the terminal if the
 	# session dies before anyone reads the file.
 	print(entry.strip_edges())
-	return path
+	return ProjectSettings.globalize_path(path)
 
 func _state_lines(note: String) -> Array[String]:
 	var position := _eye_position()

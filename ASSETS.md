@@ -24,9 +24,10 @@ naming convention as shipped by Kenney. See "Known inconsistencies" below.
 **Only the kits in use are imported.** Every kit directory except
 `city-kit-commercial` carries an empty `.gdignore`, which makes Godot skip it
 entirely: no `.import` file, no `.godot/imported/` entry, nothing in the editor's
-file tree. Importing all 15 produced 1353 `.import` files for 41 models actually
-wired into generation, and turned a cold import into 15 seconds; ignoring the
-rest brings that to 42 files and 2.4 seconds. **Delete a kit's `.gdignore` in the
+file tree. Importing all 15 produced 1353 `.import` files, against 14 models
+actually wired into generation (the `store` row of `Config.BUILDING_MODELS`), and
+turned a cold import into 15 seconds; ignoring all but the one kit in use brings
+that to 42 files and 2.4 seconds. **Delete a kit's `.gdignore` in the
 same commit that starts using it** — until then `load()` on anything inside it
 fails, because Godot never saw the file.
 
