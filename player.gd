@@ -161,6 +161,30 @@ func _interpolate(delta: float) -> void:
 	global_position = global_position.lerp(_net_position, weight)
 	rotation.y = lerp_angle(rotation.y, _net_yaw, weight)
 
+# --- Debug ------------------------------------------------------------------
+## Move now, locally, so the key feels instant; then tell the host, because the
+## host owns this body and would otherwise reconcile the move away within a few
+## frames. The prediction target is moved too, or the reconcile drags us back
+## across the city until the next state packet lands.
+func debug_teleport(target: Vector3) -> void:
+	if not is_local:
+		return
+	global_position = target
+	velocity = Vector3.ZERO
+	_net_position = target
+	if Net.is_active_client():
+		_accept_teleport.rpc_id(1, target)
+
+@rpc("any_peer", "reliable")
+func _accept_teleport(target: Vector3) -> void:
+	if not multiplayer.is_server():
+		return
+	# A peer may only move its own player. Debug tools are still tools.
+	if multiplayer.get_remote_sender_id() != peer_id:
+		return
+	global_position = target
+	velocity = Vector3.ZERO
+
 func apply_net_state(net_position: Vector3, net_yaw: float) -> void:
 	_net_position = net_position
 	_net_yaw = net_yaw

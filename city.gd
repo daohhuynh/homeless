@@ -65,7 +65,9 @@ func _build_grid() -> void:
 		_col_x[i] -= total_x * 0.5
 		_row_z[i] -= total_z * 0.5
 
-func _extent() -> float:
+## Full span of the built city, centered on origin. Public because the preview
+## harness frames its cameras from it.
+func extent() -> float:
 	var x := _col_x[Config.GRID_SIZE - 1] + _col_w[Config.GRID_SIZE - 1]
 	var z := _row_z[Config.GRID_SIZE - 1] + _row_d[Config.GRID_SIZE - 1]
 	return maxf(x, z) * 2.0
@@ -197,6 +199,16 @@ func spawn_point(index: int) -> Vector3:
 		return _spawn_points[0] + Vector3(cos(angle), 0.0, sin(angle)) * Config.SPAWN_SPREAD
 	return _spawn_points[index % _spawn_points.size()]
 
+## Street corners, in the same deterministic order on every machine. The debug
+## teleport picks from these; nothing else should need them.
+func corner_count() -> int:
+	return _spawn_points.size()
+
+func corner(index: int) -> Vector3:
+	if _spawn_points.is_empty():
+		return Vector3(0.0, Config.PLAYER_HEIGHT, 0.0)
+	return _spawn_points[index % _spawn_points.size()]
+
 func _build_spawn_points() -> void:
 	var candidates: Array[Vector3] = []
 	var half_street := Config.STREET_WIDTH * 0.5
@@ -211,7 +223,7 @@ func _build_spawn_points() -> void:
 
 # --- Geometry ---------------------------------------------------------------
 func _build_ground() -> void:
-	var size := _extent() + Config.GROUND_MARGIN
+	var size := extent() + Config.GROUND_MARGIN
 
 	var body := StaticBody3D.new()
 	body.name = "Ground"
@@ -238,6 +250,14 @@ func _build_building(row: Dictionary, center: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
 	body.name = str(row["name"]).validate_node_name()
 	body.position = center
+	# Node names are sanitized and deduplicated, so they are not the label and
+	# cannot be compared against Config.LOCATIONS. The tools read these instead.
+	body.set_meta(&"location_name", row["name"])
+	body.set_meta(&"location_kind", row["kind"])
+	body.set_meta(&"footprint", Rect2(
+		center.x - size.x * 0.5, center.z - size.z * 0.5, size.x, size.z
+	))
+	body.set_meta(&"building_height", size.y)
 	add_child(body)
 
 	var mesh := MeshInstance3D.new()

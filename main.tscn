@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" path="res://city.gd" id="2_city"]
+[ext_resource type="Script" path="res://debug.gd" id="3_debug"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.16, 0.18, 0.24, 1)
@@ -40,20 +41,24 @@ script = ExtResource("2_city")
 
 [node name="Players" type="Node3D" parent="."]
 
+[node name="Debug" type="Node" parent="."]
+script = ExtResource("3_debug")
+
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="Controls" type="Label" parent="HUD"]
 offset_left = 16.0
 offset_top = 12.0
 offset_right = 640.0
-offset_bottom = 36.0
-text = "WASD move · Shift sprint · Space jump · R reshuffle (host) · Esc free mouse"
+offset_bottom = 60.0
+text = "WASD move · Shift sprint · Space jump · R reshuffle (host) · Esc free mouse
+T teleport to corner · F free-fly · F3 seed readout"
 modulate = Color(1, 1, 1, 0.55)
 
 [node name="Status" type="Label" parent="HUD"]
 offset_left = 16.0
-offset_top = 36.0
+offset_top = 60.0
 offset_right = 640.0
-offset_bottom = 60.0
+offset_bottom = 84.0
 text = "H host · J join 127.0.0.1"
 modulate = Color(1, 1, 1, 0.75)

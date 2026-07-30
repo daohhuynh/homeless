@@ -28,6 +28,27 @@ const KEY_RESHUFFLE := KEY_R
 const KEY_HOST := KEY_H
 const KEY_JOIN := KEY_J
 
+# --- Debug tools ------------------------------------------------------------
+## Three keys, all local-only and all safe to press in a live session.
+const KEY_TELEPORT := KEY_T
+const KEY_FREEFLY := KEY_F
+const KEY_DEBUG_HUD := KEY_F3
+const KEY_FLY_UP := KEY_SPACE
+const KEY_FLY_DOWN := KEY_CTRL
+
+## Seed readout starts visible: the seed is the one thing you always want when
+## something looks wrong, and you cannot ask for it after the fact.
+const DEBUG_HUD_VISIBLE := true
+## Lift above the corner's spawn height, so a teleport never lands inside the
+## floor and gets pushed sideways by depenetration.
+const DEBUG_TELEPORT_CLEARANCE := 0.25
+
+const FLY_SPEED := 24.0
+const FLY_SPRINT_MULTIPLIER := 4.0
+## Lerp rate toward the wished velocity. High enough to feel direct, low enough
+## that a full-speed pass over the city is not nauseating.
+const FLY_ACCELERATION := 12.0
+
 # --- Networking -------------------------------------------------------------
 const MAX_PLAYERS := 4
 const NET_PORT := 27015
@@ -160,3 +181,45 @@ const FILLER_SUFFIX: Array[String] = [
 	"Apartments", "Lofts", "Tower", "Offices", "Building", "Plaza",
 	"Court", "Arms", "Hotel", "Center",
 ]
+
+# --- Invariant tests --------------------------------------------------------
+## Fixed seeds, so a failure is reproducible and a fix is provable. Add a seed
+## here when one turns up a bug; never remove one.
+const TEST_SEEDS: Array[int] = [1, 7, 42, 1337, 20260729, 999983, -12345]
+## Cell size of the walkability raster. Below the player diameter, or a gap the
+## player cannot actually fit through reads as a corridor.
+const TEST_CELL_SIZE := 0.4
+## Footprints closer than this are touching, not overlapping. Two lots sharing
+## an edge is legal; two buildings sharing volume is not.
+const TEST_OVERLAP_EPSILON := 0.001
+## How far off a building's footprint a walkable cell may sit and still count
+## as standing at its door.
+const TEST_REACH_MARGIN := 2.0
+
+# --- City preview harness ---------------------------------------------------
+const PREVIEW_DIR := "res://previews"
+const PREVIEW_WIDTH := 640
+const PREVIEW_HEIGHT := 400
+## Four fixed compass angles, so the same block appears in the same place in
+## every seed's sheet and seeds can be compared rather than merely looked at.
+const PREVIEW_YAWS: Array[float] = [45.0, 135.0, 225.0, 315.0]
+const PREVIEW_ELEVATION := 34.0
+## Camera distance as a multiple of the city's extent.
+const PREVIEW_DISTANCE_SCALE := 0.68
+const PREVIEW_FOV := 55.0
+## The game's fog is tuned for street level and turns an aerial shot into a
+## grey rectangle. Previews are for reading the layout, not the mood.
+const PREVIEW_DISABLE_FOG := true
+## The game's shadow distance is tuned for street level too.
+const PREVIEW_SHADOW_DISTANCE_SCALE := 1.5
+## Frames to let the renderer settle before grabbing. One is usually enough;
+## three costs milliseconds and removes a class of flaky black frames.
+const PREVIEW_WARMUP_FRAMES := 3
+
+const PREVIEW_PADDING := 10
+const PREVIEW_CAPTION_HEIGHT := 34
+const PREVIEW_CAPTION_FONT_SIZE := 20
+## Cities per row on the contact sheet.
+const PREVIEW_SHEET_COLUMNS := 2
+const PREVIEW_BACKGROUND := Color(0.09, 0.09, 0.11)
+const PREVIEW_CAPTION_COLOR := Color(0.86, 0.86, 0.90)
