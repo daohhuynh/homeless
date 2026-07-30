@@ -6,12 +6,13 @@ extends SceneTree
 ##
 ## Exits non-zero if any invariant fails, so it can gate a commit.
 ##
-## These are the four properties the rest of the design leans on. Determinism
+## These are the properties the rest of the design leans on. Determinism
 ## is what lets the city stay off the wire. Non-overlap is what makes the city
 ## look built rather than glitched. Presence and reachability are what make
 ## "go find the Day Labor Center" a task rather than a coin flip — a named
 ## location that did not spawn, or spawned walled in, turns a run into a
-## wild goose chase that the players cannot tell apart from being lost.
+## wild goose chase that the players cannot tell apart from being lost. And the
+## suite has to notice when no city was built at all, or it reports on nothing.
 
 const CityScript := preload("res://city.gd")
 
@@ -27,7 +28,7 @@ func _initialize() -> void:
 
 	print("")
 	if _failures.is_empty():
-		print("PASS — %d seeds, 4 invariants each." % Config.TEST_SEEDS.size())
+		print("PASS — %d seeds, 5 invariants each." % Config.TEST_SEEDS.size())
 		quit(0)
 		return
 	print("FAIL — %d failure(s):" % _failures.size())
@@ -38,12 +39,18 @@ func _initialize() -> void:
 func _check_seed(city_seed: int) -> void:
 	var city := _build(city_seed)
 	var twin := _build(city_seed)
+	if not _check_built(city_seed, city, twin):
+		return
 
 	var started := Time.get_ticks_msec()
 	_check_determinism(city_seed, city, twin)
 	twin.free()
 
 	var buildings := _buildings(city)
+	if buildings.is_empty():
+		_fail(city_seed, "built", "city built no buildings")
+		city.free()
+		return
 	_check_no_overlaps(city_seed, buildings)
 	_check_locations_present(city_seed, buildings)
 	_check_locations_reachable(city_seed, city, buildings)
@@ -52,6 +59,21 @@ func _check_seed(city_seed: int) -> void:
 		city_seed, buildings.size(), Time.get_ticks_msec() - started
 	])
 	city.free()
+
+# --- 0. Something was built -------------------------------------------------
+## The cheapest invariant and the one that protects the other four. A parse error
+## in city.gd makes CityScript.new() return null, every check below skip on a
+## null, and the suite print PASS having built nothing and tested nothing — a
+## green light that means the opposite. An empty city counts as the same failure.
+func _check_built(city_seed: int, city: Node3D, twin: Node3D) -> bool:
+	if city != null and twin != null:
+		return true
+	if city != null:
+		city.free()
+	if twin != null:
+		twin.free()
+	_fail(city_seed, "built", "city script did not instantiate — check it parses")
+	return false
 
 func _build(city_seed: int) -> Node3D:
 	var city: Node3D = CityScript.new()
