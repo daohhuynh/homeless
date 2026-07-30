@@ -29,10 +29,11 @@ const KEY_HOST := KEY_H
 const KEY_JOIN := KEY_J
 
 # --- Debug tools ------------------------------------------------------------
-## Three keys, all local-only and all safe to press in a live session.
+## Four keys, all local-only and all safe to press in a live session.
 const KEY_TELEPORT := KEY_T
 const KEY_FREEFLY := KEY_F
 const KEY_DEBUG_HUD := KEY_F3
+const KEY_NOTE := KEY_F2
 const KEY_FLY_UP := KEY_SPACE
 const KEY_FLY_DOWN := KEY_CTRL
 
@@ -42,6 +43,21 @@ const DEBUG_HUD_VISIBLE := true
 ## Lift above the corner's spawn height, so a teleport never lands inside the
 ## floor and gets pushed sideways by depenetration.
 const DEBUG_TELEPORT_CLEARANCE := 0.25
+
+## Session notes (F2). One file per calendar day, appended to, never rotated:
+## a day's playtesting is one story and splitting it per launch loses the order.
+const NOTE_LOG_DIR := "res://logs"
+## Empty notes are discarded rather than logged — a state dump with nothing said
+## about it is noise, and F2-then-Escape has to mean something.
+const NOTE_MAX_LENGTH := 240
+## How long the "written to ..." confirmation stays up.
+const NOTE_CONFIRM_SECONDS := 3.0
+## A location counts as visible when its sign is drawing and it is in frame, so
+## this tracks the landmark label range by definition rather than by coincidence.
+const NOTE_VISIBLE_RANGE := LABEL_LANDMARK_RANGE
+## Placeholder for a system that does not exist yet. Written into the log in
+## place of a value so an entry never reads as complete when it is not.
+const NOTE_MISSING := "--"
 
 const FLY_SPEED := 24.0
 const FLY_SPRINT_MULTIPLIER := 4.0

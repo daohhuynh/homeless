@@ -209,6 +209,25 @@ func corner(index: int) -> Vector3:
 		return Vector3(0.0, Config.PLAYER_HEIGHT, 0.0)
 	return _spawn_points[index % _spawn_points.size()]
 
+## Every named location in the built city: name, kind, and where it stands.
+## Reads the metas rather than Config.LOCATIONS, because the question callers
+## ask is "what is out there and where", which only the built tree knows.
+## Filler blocks are excluded — they are scenery, not places.
+func landmarks() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for child in get_children():
+		if not child.has_meta(&"location_kind"):
+			continue
+		if child.get_meta(&"location_kind") == "block":
+			continue
+		out.append({
+			"name": child.get_meta(&"location_name"),
+			"kind": child.get_meta(&"location_kind"),
+			"position": child.position,
+			"height": child.get_meta(&"building_height"),
+		})
+	return out
+
 func _build_spawn_points() -> void:
 	var candidates: Array[Vector3] = []
 	var half_street := Config.STREET_WIDTH * 0.5
