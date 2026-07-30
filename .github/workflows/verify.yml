@@ -1,0 +1,57 @@
+name: verify
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # Matches the editor this project is developed against (project.godot
+  # declares feature "4.7"). Bump both lines together.
+  GODOT_VERSION: 4.7.1
+  # Godot 4 ships no separate headless build — headless is a flag on the
+  # standard Linux editor binary, so this is the asset to download.
+  GODOT_ASSET: Godot_v4.7.1-stable_linux.x86_64.zip
+
+jobs:
+  invariants:
+    name: City invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot binary
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/godot-bin
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      - name: Download Godot ${{ env.GODOT_VERSION }}
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p ~/godot-bin
+          curl -fsSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/${GODOT_ASSET}"
+          unzip -q /tmp/godot.zip -d ~/godot-bin
+          # The zip contains one binary named after itself, minus the .zip.
+          mv ~/godot-bin/"${GODOT_ASSET%.zip}" ~/godot-bin/godot
+          chmod +x ~/godot-bin/godot
+
+      - name: Report version
+        run: |
+          echo "$HOME/godot-bin" >> "$GITHUB_PATH"
+          ~/godot-bin/godot --version
+
+      # .godot/ is gitignored, so the runner has no import cache. Without this
+      # the first --script run races the importer and can fail on a cold res://.
+      # Godot exits non-zero after a successful import in some versions, so the
+      # step's own status is not the signal — the invariant run is.
+      - name: Import project
+        run: godot --headless --path . --import || true
+
+      - name: Run invariant suite
+        run: godot --headless --path . --script tests/invariants.gd
